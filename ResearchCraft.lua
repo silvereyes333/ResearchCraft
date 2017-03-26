@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.1.0",
+    version = "1.1.1",
     author = "|c99CCEFsilvereyes|r",
     defaults = {
         reserve = 20,
@@ -336,28 +336,14 @@ local function PrintUsage()
     d("  <reserve>: (optional) number of inventory slots to leave empty. default 20")
     d("  <limit>: (optional) max number of pieces to craft; -or- half -or- third -or- quarter (available slots - reserve / 2, 3 or 4)")
 end
-function StringSplit(str, pat)
-    if not pat then pat = " " end
-    local t = {}
-    local fpat = "(.-)" .. pat
-    local last_end = 1
-    local s, e, cap = str:find(fpat, 1)
-    while s do
-        if s ~= 1 or cap ~= "" then
-            table.insert(t,cap)
-        end
-        last_end = e+1
-        s, e, cap = str:find(fpat, last_end)
-    end
-    if last_end <= #str then
-        cap = str:sub(last_end)
-        table.insert(t, cap)
-    end
-    return unpack(t)
+function WordSplit(str)
+    local words = {}
+    for word in str:gmatch("%w+") do table.insert(words, word) end
+    return unpack(words)
 end
 local function ResearchExport(parameters)
     
-    local skill, reserve, limit = StringSplit(parameters)
+    local skill, reserve, limit = WordSplit(parameters)
     
     local craftSkill
     if skill == "smith" or skill == "bs" or skill == "blacksmithing" or skill == "metal" then
@@ -380,7 +366,7 @@ local function ResearchExport(parameters)
     
     local freeSlots
     if limit and tonumber(limit) then
-        freeSlots = limit
+        freeSlots = tonumber(limit)
     else
         freeSlots = GetNumBagFreeSlots(BAG_BACKPACK) - reserve
     end
