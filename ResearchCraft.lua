@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.1.1",
+    version = "1.2.0",
     author = "|c99CCEFsilvereyes|r",
     defaults = {
         reserve = 20,
@@ -276,7 +276,10 @@ local function ResearchCraft(encoded)
     local isCraftSkill = true
     local isFreeSlots = false
     self.craftGear = {}
-    local substitutions = { ["Robe"] = "Robe & Jerkin", ["Jerkin"] = "Robe & Jerkin"}
+    local substitutions = { 
+        [GetString(SI_RESEARCHCRAFT_ROBE)]   = GetString(SI_RESEARCHCRAFT_ROBE_AND_JERKIN), 
+        [GetString(SI_RESEARCHCRAFT_JERKIN)] = GetString(SI_RESEARCHCRAFT_ROBE_AND_JERKIN), 
+    }
     
     self.traitTypeToIndexMap = {}
     for traitItemIndex = 1, GetNumSmithingTraitItems() do
