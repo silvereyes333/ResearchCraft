@@ -1,8 +1,11 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.0.0",
+    version = "1.1.0",
     author = "|c99CCEFsilvereyes|r",
+    defaults = {
+        reserve = 20,
+    },
 }
 local self = ResearchCraft
 local researchableCraftSkills = {
@@ -327,7 +330,34 @@ local function ResearchCraft(encoded)
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CRAFT_COMPLETED, CraftNext)
     CraftNext()
 end
-local function ResearchExport(skill)
+local function PrintUsage()
+    d("Usage: /researchexport <skill> <reserve> <limit>")
+    d("  <skill>: blacksmithing (bs, metal, smith), clothier (cloth) or woodworking (ww)")
+    d("  <reserve>: (optional) number of inventory slots to leave empty. default 20")
+    d("  <limit>: (optional) max number of pieces to craft; -or- half -or- third -or- quarter (available slots - reserve / 2, 3 or 4)")
+end
+function StringSplit(str, pat)
+    if not pat then pat = " " end
+    local t = {}
+    local fpat = "(.-)" .. pat
+    local last_end = 1
+    local s, e, cap = str:find(fpat, 1)
+    while s do
+        if s ~= 1 or cap ~= "" then
+            table.insert(t,cap)
+        end
+        last_end = e+1
+        s, e, cap = str:find(fpat, last_end)
+    end
+    if last_end <= #str then
+        cap = str:sub(last_end)
+        table.insert(t, cap)
+    end
+    return unpack(t)
+end
+local function ResearchExport(parameters)
+    
+    local skill, reserve, limit = StringSplit(parameters)
     
     local craftSkill
     if skill == "smith" or skill == "bs" or skill == "blacksmithing" or skill == "metal" then
@@ -337,14 +367,33 @@ local function ResearchExport(skill)
     elseif skill == "ww" or skill == "woodworking" then
         craftSkill = CRAFTING_TYPE_WOODWORKING
     else
-        d("Unrecognized skill line. Expected blacksmithing (bs, metal, smith), clothier (cloth) or woodworking (ww).")
+        d("Invalid parameter "..tostring(skill))
+        PrintUsage()
         return
     end
     
-    local freeSlots = GetNumBagFreeSlots(BAG_BACKPACK) - 20
+    if reserve then
+        reserve = tonumber(reserve)
+    else
+        reserve = self.defaults.reserve
+    end
+    
+    local freeSlots
+    if limit and tonumber(limit) then
+        freeSlots = limit
+    else
+        freeSlots = GetNumBagFreeSlots(BAG_BACKPACK) - reserve
+    end
     if freeSlots < 0 then 
         d("You do not have enough free slots in your inventory.")
         return
+    end
+    if limit == "half" then
+        freeSlots = math.floor(freeSlots / 2)
+    elseif limit == "third" then
+        freeSlots = math.floor(freeSlots / 3)
+    elseif limit == "quarter" then
+        freeSlots = math.floor(freeSlots / 4)
     end
     local encoded = "/researchcraft "..tostring(craftSkill)..":"..tostring(freeSlots)..":"
     

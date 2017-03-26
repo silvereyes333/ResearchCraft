@@ -1,7 +1,7 @@
 ## Title: Research Craft
 ## Author: |c99CCEFsilvereyes|r
 ## Description: Allows exporting a batch order for research gear to chat and then running that command on a master crafter character to craft it all.
-## Version: 1.0.0
+## Version: 1.1.0
 ## APIVersion: 100018
 ## OptionalDependsOn: FCOItemSaver
 
