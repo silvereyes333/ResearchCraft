@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.2.0",
+    version = "1.3.0",
     author = "|c99CCEFsilvereyes|r",
     defaults = {
         reserve = 20,
@@ -86,37 +86,48 @@ local function DiscoverResearchableTraits(craftSkill, researchLineIndex, returnA
     end
 end
 
-local function IsItemLocked(bagId, slotIndex)
-    if IsItemPlayerLocked(bagId, slotIndex) then
+local function IsFcoisResearchMarked(bagId, slotIndex)
+    if not FCOIS or not FCOIsMarked then
+        return
+    end
+    local itemInstanceId = GetItemInstanceId(bagId, slotIndex)
+    if FCOIsMarked(itemInstanceId, FCOIS_CON_ICON_RESEARCH) then
         return true
     end
-    
-    if FCOIS and FCOIS.callDeconstructionSelectionHandler(bagId, slotIndex, false, false, true, true, true, true, LF_SMITHING_RESEARCH)
+end
+local function IsFcoisLocked(bagId, slotIndex)
+    if FCOIS and FCOIS.callDeconstructionSelectionHandler(bagId, slotIndex, false, false, true, true, true, true, LF_SMITHING_RESEARCH) then
+        return true
+    end
+end
+local function IsResearchable(bagId, slotIndex)
+    local _, _, _, _, locked, _, itemStyle, quality = GetItemInfo(bagId, slotIndex)
+    if locked then 
+        return 
+    end
+    if IsFcoisResearchMarked(bagId, slotIndex) then
+        return true
+    end
+    local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
+    local hasSet = GetItemLinkSetInfo(itemLink)
+    if quality < ITEM_QUALITY_ARTIFACT 
+       and not IsFcoisLocked(bagId, slotIndex)
+       and cheapStyles[itemStyle] 
+       and not hasSet
     then
         return true
     end
 end
-local function GetResearchableItem(inventoryType, craftSkill, researchLineIndex, returnAll)
-    local inventory = PLAYER_INVENTORY.inventories[inventoryType]
-    local bagId = inventory.backingBag
-
-
+local function GetResearchableItem(bagId, craftSkill, researchLineIndex, returnAll)
     local slotIndex = ZO_GetNextBagSlotIndex(bagId)
     local researchableItems = {}
-    local firstTraitIndex = self.researchableTraits[researchLineIndex][1]
     while slotIndex do
-        local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
-        local quality = GetItemLinkQuality(itemLink)
-        local itemStyle = GetItemLinkItemStyle(itemLink)
-        local hasSet = GetItemLinkSetInfo(itemLink)
-        if quality < ITEM_QUALITY_ARTIFACT and not IsItemLocked(bagId, slotIndex)
-           and cheapStyles[itemStyle] and not hasSet
-        then
+        if IsResearchable(bagId, slotIndex) then
             for i = 1, #self.researchableTraits[researchLineIndex] do
                 local traitIndex = self.researchableTraits[researchLineIndex][i]
                 if not researchableItems[traitIndex] 
                    and CanItemBeSmithingTraitResearched(bagId, slotIndex, craftSkill, researchLineIndex, traitIndex) 
-                then
+                then                    
                     if i == 1 and not returnAll then
                         return slotIndex
                     end
@@ -276,11 +287,6 @@ local function ResearchCraft(encoded)
     local isCraftSkill = true
     local isFreeSlots = false
     self.craftGear = {}
-    local substitutions = { 
-        [GetString(SI_RESEARCHCRAFT_ROBE)]   = GetString(SI_RESEARCHCRAFT_ROBE_AND_JERKIN), 
-        [GetString(SI_RESEARCHCRAFT_JERKIN)] = GetString(SI_RESEARCHCRAFT_ROBE_AND_JERKIN), 
-    }
-    
     self.traitTypeToIndexMap = {}
     for traitItemIndex = 1, GetNumSmithingTraitItems() do
         local itemTraitType = GetSmithingTraitItemInfo(traitItemIndex)
@@ -290,10 +296,7 @@ local function ResearchCraft(encoded)
     end
     local nameToPatternMap = {}
     for patternIndex = 1, GetNumSmithingPatterns() do
-        local name = GetSmithingPatternInfo(patternIndex)
-        if substitutions[name] then
-            name = substitutions[name]
-        end
+        local _, name = GetSmithingPatternInfo(patternIndex)
         nameToPatternMap[name] = patternIndex
     end
     local patternIndex
@@ -398,10 +401,15 @@ local function ResearchExport(parameters)
         -- Calculate subtotals for the research line
         DiscoverResearchableTraits(craftSkill, researchLineIndex, true)
         if self.researchableTraits[researchLineIndex] then
-            local backpackResearchables = GetResearchableItem(INVENTORY_BACKPACK, craftSkill, 
+            local backpackResearchables = GetResearchableItem(BAG_BACKPACK, craftSkill, 
                                                               researchLineIndex, true)
-            local bankResearchables     = GetResearchableItem(INVENTORY_BANK, craftSkill, 
+            local bankResearchables     = GetResearchableItem(BAG_BANK, craftSkill, 
                                                               researchLineIndex, true)
+            local subBankResearchables
+            if BAG_SUBSCRIBER_BANK then
+                subBankResearchables    = GetResearchableItem(BAG_SUBSCRIBER_BANK, craftSkill, 
+                                                              researchLineIndex, true)
+            end
             local firstTrait = true
             for i = 1, #self.researchableTraits[researchLineIndex] do
                 local traitIndex = self.researchableTraits[researchLineIndex][i]
@@ -410,6 +418,7 @@ local function ResearchExport(parameters)
                 if not backpackResearchables[traitIndex] and not bankResearchables[traitIndex] 
                    and traitType ~= ITEM_TRAIT_TYPE_ARMOR_NIRNHONED
                    and traitType ~= ITEM_TRAIT_TYPE_WEAPON_NIRNHONED
+                   and (not subBankResearchables or not subBankResearchables[traitIndex])
                 then
                     if firstTrait then
                         if firstLine then
