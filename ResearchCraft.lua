@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.3.1",
+    version = "1.3.2",
     author = "|c99CCEFsilvereyes|r",
     defaults = {
         reserve = 20,
@@ -222,24 +222,24 @@ local function CraftNext()
     
     -- find style stone with the biggest stack
     local maxStyleItemStackSize = 0
-    local selectedStyleItemIndex
     local selectedItemStyle
-    local maxStyleItemIndex = GetNumSmithingStyleItems()
-    for styleItemIndex = 1, maxStyleItemIndex do
-        local _, _, _, _, itemStyle = GetSmithingStyleItemInfo(styleItemIndex)
-        local styleItemStackSize = GetCurrentSmithingStyleItemCount(styleItemIndex)
-        if IsSmithingStyleKnown(styleItemIndex, patternIndex)
+    local minStyleId = GetFirstKnownItemStyleId(patternIndex)
+    local maxStyleId = GetHighestItemStyleId()
+    for itemStyle = minStyleId, maxStyleId do
+        if GetValidItemStyleId(itemStyle)
+           and IsSmithingStyleKnown(itemStyle, patternIndex)
            and cheapStyles[itemStyle]
-           and styleItemStackSize > maxStyleItemStackSize
         then
-            selectedStyleItemIndex = styleItemIndex
-            maxStyleItemStackSize = styleItemStackSize  
-            selectedItemStyle = itemStyle       
+            local styleItemStackSize = GetCurrentSmithingStyleItemCount(itemStyle)
+            if styleItemStackSize > maxStyleItemStackSize then
+                maxStyleItemStackSize = styleItemStackSize  
+                selectedItemStyle = itemStyle       
+            end
         end
     end
     
     -- No cheap style materials found for any known styles
-    if not selectedStyleItemIndex then
+    if not selectedItemStyle then
         d("You do not have any inexpensive style stones for known motifs.")
         EndCraft()
         return
@@ -250,7 +250,7 @@ local function CraftNext()
     local traitName = GetString("SI_ITEMTRAITTYPE", GetSmithingTraitItemInfo(traitItemIndex))
     local traitItemLink = GetSmithingTraitItemLink(traitItemIndex)
     local itemLink = GetSmithingPatternResultLink(patternIndex, materialIndex, materialRequired, 
-                                                  selectedStyleItemIndex, traitItemIndex)
+                                                  selectedItemStyle, traitItemIndex)
     itemLink = itemLink .. " ("..traitName..")"
     --d("trait item index: "..tostring(traitItemIndex))
     local traitStoneCount = GetCurrentSmithingTraitItemCount(traitItemIndex)
@@ -261,7 +261,7 @@ local function CraftNext()
         return
     end
     
-    local styleItemLink = GetSmithingStyleItemLink(selectedStyleItemIndex)
+    local styleItemLink = GetItemStyleMaterialLink(selectedItemStyle)
     --local itemStyleName = zo_strformat("<<1>>", GetString("SI_ITEMSTYLE", selectedItemStyle))
     d("Crafting " .. itemLink .. " using " .. tostring(materialRequired) .. "x " .. materialLink
       .. ", 1x " .. styleItemLink .. " and 1x " .. traitItemLink .. "...")
@@ -269,7 +269,7 @@ local function CraftNext()
     MarkTraitCrafted(patternIndex, itemTraitType)
     --CraftNext()
     CraftSmithingItem(patternIndex, materialIndex, materialRequired, 
-                      selectedStyleItemIndex, traitItemIndex)
+                      selectedItemStyle, traitItemIndex)
 end
 local function ResearchCraft(encoded)
     if not encoded then
