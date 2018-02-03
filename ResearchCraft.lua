@@ -210,8 +210,7 @@ local function CraftNext()
     -- Check inventory for sufficient materials
     local materialIndex = 1 -- always use the cheap stuff
     local materialCount = GetCurrentSmithingMaterialItemCount(patternIndex, materialIndex)
-    local materialRequired = GetSmithingPatternNextMaterialQuantity(patternIndex, 
-                                                                    materialIndex, 1, 1)
+    local materialRequired = select(3, GetSmithingPatternMaterialItemInfo(patternIndex, materialIndex))
     local materialLink = GetSmithingPatternMaterialItemLink(patternIndex, materialIndex)
     if materialCount < materialRequired then
         d("You do not have the " .. tostring(materialRequired) .. "x " .. materialLink 
