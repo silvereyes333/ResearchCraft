@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.3.2",
+    version = "1.5.0",
     author = "|c99CCEFsilvereyes|r",
     defaults = {
         reserve = 20,
@@ -9,24 +9,25 @@ ResearchCraft = {
 }
 local self = ResearchCraft
 local researchableCraftSkills = {
-    [CRAFTING_TYPE_BLACKSMITHING] = true,
-    [CRAFTING_TYPE_CLOTHIER]      = true,
-    [CRAFTING_TYPE_WOODWORKING]   = true,
+    [CRAFTING_TYPE_BLACKSMITHING]   = true,
+    [CRAFTING_TYPE_CLOTHIER]        = true,
+    [CRAFTING_TYPE_WOODWORKING]     = true,
+    [CRAFTING_TYPE_JEWELRYCRAFTING or -1] = true,
 }
 local cheapStyles = {
-    [ITEMSTYLE_RACIAL_HIGH_ELF]   = true,
-    [ITEMSTYLE_RACIAL_DARK_ELF]   = true,
-    [ITEMSTYLE_RACIAL_WOOD_ELF]   = true,
-    [ITEMSTYLE_RACIAL_NORD]       = true,
-    [ITEMSTYLE_RACIAL_BRETON]     = true,
-    [ITEMSTYLE_RACIAL_REDGUARD]   = true,
-    [ITEMSTYLE_RACIAL_KHAJIIT]    = true,
-    [ITEMSTYLE_RACIAL_ORC]        = true,
-    [ITEMSTYLE_RACIAL_ARGONIAN]   = true,
-    [ITEMSTYLE_RACIAL_IMPERIAL]   = true,
-    [ITEMSTYLE_AREA_ANCIENT_ELF]  = true,
-    [ITEMSTYLE_AREA_REACH]        = true,
-    [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
+    [ITEMSTYLE_RACIAL_HIGH_ELF]     = true,
+    [ITEMSTYLE_RACIAL_DARK_ELF]     = true,
+    [ITEMSTYLE_RACIAL_WOOD_ELF]     = true,
+    [ITEMSTYLE_RACIAL_NORD]         = true,
+    [ITEMSTYLE_RACIAL_BRETON]       = true,
+    [ITEMSTYLE_RACIAL_REDGUARD]     = true,
+    [ITEMSTYLE_RACIAL_KHAJIIT]      = true,
+    [ITEMSTYLE_RACIAL_ORC]          = true,
+    [ITEMSTYLE_RACIAL_ARGONIAN]     = true,
+    [ITEMSTYLE_RACIAL_IMPERIAL]     = true,
+    [ITEMSTYLE_AREA_ANCIENT_ELF]    = true,
+    [ITEMSTYLE_AREA_REACH]          = true,
+    [ITEMSTYLE_ENEMY_PRIMITIVE]     = true,
 }
 local itemTraitTypeOrder = {
     ITEM_TRAIT_TYPE_WEAPON_SHARPENED,
@@ -47,6 +48,19 @@ local itemTraitTypeOrder = {
     ITEM_TRAIT_TYPE_ARMOR_PROSPEROUS,
     ITEM_TRAIT_TYPE_WEAPON_NIRNHONED,
     ITEM_TRAIT_TYPE_ARMOR_NIRNHONED,
+    ITEM_TRAIT_TYPE_JEWELRY_ARCANE,
+    ITEM_TRAIT_TYPE_JEWELRY_ROBUST,
+    ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY,
+    ITEM_TRAIT_TYPE_JEWELRY_TRIUNE,
+    ITEM_TRAIT_TYPE_JEWELRY_SWIFT,
+    ITEM_TRAIT_TYPE_JEWELRY_HEALTHY,
+    ITEM_TRAIT_TYPE_JEWELRY_PROTECTIVE,
+    ITEM_TRAIT_TYPE_JEWELRY_HARMONY,
+    ITEM_TRAIT_TYPE_JEWELRY_INFUSED,
+}
+local styledCategories = {
+    [ITEM_TRAIT_TYPE_CATEGORY_ARMOR]  = true,
+    [ITEM_TRAIT_TYPE_CATEGORY_WEAPON] = true,
 }
 local function DiscoverResearchableTraits(craftSkill, researchLineIndex, returnAll)
     
@@ -147,6 +161,7 @@ local function OnAlertNoSuppression(category, soundId, message)
     if message == SI_SMITHING_BLACKSMITH_EXTRACTION_FAILED 
        or message == SI_SMITHING_CLOTHIER_EXTRACTION_FAILED
        or message == SI_SMITHING_WOODWORKING_EXTRACTION_FAILED
+       or message == SI_SMITHING_EXTRACTION_FAILED
     then
         return true
     end
@@ -219,29 +234,32 @@ local function CraftNext()
         return
     end
     
-    -- find style stone with the biggest stack
-    local maxStyleItemStackSize = 0
+    -- if crafting weapons or armor, find style stone with the biggest stack
+    local itemTraitTypeCategory = GetItemTraitTypeCategory(itemTraitType)
     local selectedItemStyle
-    local minStyleId = GetFirstKnownItemStyleId(patternIndex)
-    local maxStyleId = GetHighestItemStyleId()
-    for itemStyle = minStyleId, maxStyleId do
-        if GetValidItemStyleId(itemStyle)
-           and IsSmithingStyleKnown(itemStyle, patternIndex)
-           and cheapStyles[itemStyle]
-        then
-            local styleItemStackSize = GetCurrentSmithingStyleItemCount(itemStyle)
-            if styleItemStackSize > maxStyleItemStackSize then
-                maxStyleItemStackSize = styleItemStackSize  
-                selectedItemStyle = itemStyle       
+    if styledCategories[itemTraitTypeCategory] then
+        local maxStyleItemStackSize = 0
+        local minStyleId = GetFirstKnownItemStyleId(patternIndex)
+        local maxStyleId = GetHighestItemStyleId()
+        for itemStyle = minStyleId, maxStyleId do
+            if GetValidItemStyleId(itemStyle)
+               and IsSmithingStyleKnown(itemStyle, patternIndex)
+               and cheapStyles[itemStyle]
+            then
+                local styleItemStackSize = GetCurrentSmithingStyleItemCount(itemStyle)
+                if styleItemStackSize > maxStyleItemStackSize then
+                    maxStyleItemStackSize = styleItemStackSize  
+                    selectedItemStyle = itemStyle       
+                end
             end
         end
-    end
     
-    -- No cheap style materials found for any known styles
-    if not selectedItemStyle then
-        d("You do not have any inexpensive style stones for known motifs.")
-        EndCraft()
-        return
+        -- No cheap style materials found for any known styles
+        if not selectedItemStyle then
+            d("You do not have any inexpensive style stones for known motifs.")
+            EndCraft()
+            return
+        end
     end
     
     -- Check inventory for trait stone
@@ -260,10 +278,14 @@ local function CraftNext()
         return
     end
     
-    local styleItemLink = GetItemStyleMaterialLink(selectedItemStyle)
-    --local itemStyleName = zo_strformat("<<1>>", GetString("SI_ITEMSTYLE", selectedItemStyle))
-    d("Crafting " .. itemLink .. " using " .. tostring(materialRequired) .. "x " .. materialLink
-      .. ", 1x " .. styleItemLink .. " and 1x " .. traitItemLink .. "...")
+    local message = "Crafting " .. itemLink .. " using " .. tostring(materialRequired) .. "x " .. materialLink
+    if selectedItemStyle then
+        local styleItemLink = GetItemStyleMaterialLink(selectedItemStyle)
+        --local itemStyleName = zo_strformat("<<1>>", GetString("SI_ITEMSTYLE", selectedItemStyle))
+        message = message .. ", 1x " .. styleItemLink
+    end
+    message = message .. " and 1x " .. traitItemLink .. "..."
+    d(message)
     -- Craft the item, at last
     MarkTraitCrafted(patternIndex, itemTraitType)
     --CraftNext()
@@ -336,10 +358,11 @@ local function ResearchCraft(encoded)
     CraftNext()
 end
 local function PrintUsage()
-    d("Usage: /researchexport <skill> <reserve> <limit>")
-    d("  <skill>: blacksmithing (bs, metal, smith), clothier (cloth) or woodworking (ww)")
+    d("Usage: /researchexport <skill> <reserve> <limit> <nirn>")
+    d("  <skill>: blacksmithing (bs, metal, smith), clothier (cloth), woodworking (ww) or jewelry (jc)")
     d("  <reserve>: (optional) number of inventory slots to leave empty. default 20")
     d("  <limit>: (optional) max number of pieces to craft; -or- half -or- third -or- quarter (available slots - reserve / 2, 3 or 4)")
+    d("  <nirn>: (optional) if the word nirn is specified, nirncrux items are included in the export")
 end
 function WordSplit(str)
     local words = {}
@@ -348,7 +371,7 @@ function WordSplit(str)
 end
 local function ResearchExport(parameters)
     
-    local skill, reserve, limit = WordSplit(parameters)
+    local skill, reserve, limit, nirn = WordSplit(parameters)
     
     local craftSkill
     if skill == "smith" or skill == "bs" or skill == "blacksmithing" or skill == "metal" then
@@ -357,6 +380,8 @@ local function ResearchExport(parameters)
         craftSkill = CRAFTING_TYPE_CLOTHIER
     elseif skill == "ww" or skill == "woodworking" then
         craftSkill = CRAFTING_TYPE_WOODWORKING
+    elseif (skill == "jc" or skill == "jewelry") and CRAFTING_TYPE_JEWELRYCRAFTING then
+        craftSkill = CRAFTING_TYPE_JEWELRYCRAFTING
     else
         d("Invalid parameter "..tostring(skill))
         PrintUsage()
@@ -364,7 +389,13 @@ local function ResearchExport(parameters)
     end
     
     if reserve then
-        reserve = tonumber(reserve)
+        if tonumber(reserve) then
+            reserve = tonumber(reserve)
+        else
+            nirn = limit
+            limit = reserve
+            reserve = self.defaults.reserve
+        end
     else
         reserve = self.defaults.reserve
     end
@@ -374,10 +405,10 @@ local function ResearchExport(parameters)
         freeSlots = tonumber(limit)
     else
         freeSlots = GetNumBagFreeSlots(BAG_BACKPACK) - reserve
-    end
-    if freeSlots < 0 then 
-        d("You do not have enough free slots in your inventory.")
-        return
+        if freeSlots < 0 then 
+            d("You do not have enough free slots in your inventory.")
+            return
+        end
     end
     if limit == "half" then
         freeSlots = math.floor(freeSlots / 2)
@@ -385,6 +416,9 @@ local function ResearchExport(parameters)
         freeSlots = math.floor(freeSlots / 3)
     elseif limit == "quarter" then
         freeSlots = math.floor(freeSlots / 4)
+    elseif limit == "nirn" then
+        nirn = limit
+        limit = nil
     end
     local encoded = "/researchcraft "..tostring(craftSkill)..":"..tostring(freeSlots)..":"
     
@@ -415,8 +449,8 @@ local function ResearchExport(parameters)
                 local traitType = GetSmithingResearchLineTraitInfo(craftSkill, researchLineIndex, 
                                                                    traitIndex)
                 if not backpackResearchables[traitIndex] and not bankResearchables[traitIndex] 
-                   and traitType ~= ITEM_TRAIT_TYPE_ARMOR_NIRNHONED
-                   and traitType ~= ITEM_TRAIT_TYPE_WEAPON_NIRNHONED
+                   and (nirn == "nirn" or traitType ~= ITEM_TRAIT_TYPE_ARMOR_NIRNHONED)
+                   and (nirn == "nirn" or traitType ~= ITEM_TRAIT_TYPE_WEAPON_NIRNHONED)
                    and (not subBankResearchables or not subBankResearchables[traitIndex])
                 then
                     if firstTrait then
