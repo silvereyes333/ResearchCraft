@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.5.5",
+    version = "1.6.0",
     author = "silvereyes",
     defaults = {
         reserve = 20,
@@ -124,7 +124,7 @@ local function IsResearchable(bagId, slotIndex)
     end
     local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
     local hasSet = GetItemLinkSetInfo(itemLink)
-    if quality < ITEM_QUALITY_ARTIFACT 
+    if quality < (ITEM_QUALITY_ARTIFACT or ITEM_FUNCTIONAL_QUALITY_ARTIFACT)
        and not IsFcoisLocked(bagId, slotIndex)
        and cheapStyles[itemStyle] 
        and not hasSet
