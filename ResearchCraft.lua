@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.6.0",
+    version = "1.6.1",
     author = "silvereyes",
     defaults = {
         reserve = 20,
