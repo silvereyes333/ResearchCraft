@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.6.3",
+    version = "1.6.4",
     author = "silvereyes",
     defaults = {
         reserve = 20,
@@ -76,7 +76,7 @@ local function DiscoverResearchableTraits(craftSkill, researchLineIndex, returnA
     for traitIndex = 1, numTraits do
         local traitType, traitDescription, known = GetSmithingResearchLineTraitInfo(craftSkill, researchLineIndex, traitIndex)
 
-        -- Trait is known
+        -- Trait is not known
         if not known then  
             local durationSecs = GetSmithingResearchLineTraitTimes(craftSkill, researchLineIndex, traitIndex)
             
@@ -292,7 +292,7 @@ local function CraftNext()
     CraftSmithingItem(patternIndex, materialIndex, materialRequired, 
                       selectedItemStyle, traitItemIndex)
 end
-local function ResearchCraft(encoded)
+local function CraftResearch(encoded)
     if not encoded then
         d("Expected encoded research trait list. Please run /researchexport on the toon you want to craft for, and then copy/paste the resulting command here.")
         return
@@ -478,7 +478,7 @@ local function OnAddonLoaded(event, name)
     ZO_PreHook("ZO_AlertNoSuppression", OnAlertNoSuppression)
     SLASH_COMMANDS["/rexport"] = ResearchExport
     SLASH_COMMANDS["/researchexport"] = ResearchExport
-    SLASH_COMMANDS["/rcraft"] = ResearchCraft
+    SLASH_COMMANDS["/rcraft"] = CraftResearch
     SLASH_COMMANDS["/researchcraft"] = ResearchCraft
 end
 EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)
