@@ -1,7 +1,7 @@
 ResearchCraft = {
     name = "ResearchCraft",
     title = "Research Craft",
-    version = "1.6.4",
+    version = "1.6.5",
     author = "silvereyes",
     defaults = {
         reserve = 20,
@@ -479,6 +479,6 @@ local function OnAddonLoaded(event, name)
     SLASH_COMMANDS["/rexport"] = ResearchExport
     SLASH_COMMANDS["/researchexport"] = ResearchExport
     SLASH_COMMANDS["/rcraft"] = CraftResearch
-    SLASH_COMMANDS["/researchcraft"] = ResearchCraft
+    SLASH_COMMANDS["/researchcraft"] = CraftResearch
 end
 EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)
